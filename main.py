@@ -19,6 +19,7 @@ from nolde_launcher.ui.fonts import load_fonts
 from nolde_launcher.ui.loading_screen import LoadingScreen, StartupResult
 from nolde_launcher.ui.main_window import MainWindow
 from nolde_launcher.ui.theme import STYLESHEET
+from nolde_launcher.ui.workers import wait_for_workers
 
 
 def _setup_logging() -> None:
@@ -54,7 +55,9 @@ def main() -> int:
     loading.startup_complete.connect(open_main)
     loading.show()
     loading.start()
-    return app.exec()
+    code = app.exec()
+    wait_for_workers()  # let background threads finish before Qt tears down
+    return code
 
 
 if __name__ == "__main__":
