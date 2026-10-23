@@ -33,6 +33,14 @@ class Worker(QThread):
             self.succeeded.emit(result)
 
 
+def wait_for_workers(timeout_ms: int = 5000) -> None:
+    """Wait for background threads before the process exits. Qt aborts if a QThread is
+    destroyed while still running, so the application calls this when it closes."""
+    for worker in list(_ACTIVE):
+        if worker.isRunning():
+            worker.wait(timeout_ms)
+
+
 def run_async(fn: Callable[..., Any], *args: Any, on_ok=None, on_err=None,
               parent: QObject | None = None) -> Worker:
     worker = Worker(fn, args, parent)

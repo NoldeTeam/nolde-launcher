@@ -469,3 +469,12 @@ def test_scrolling_reuses_cards_instead_of_creating_new_ones(qapp, tmp_path, mon
         qapp.processEvents()
     assert created["n"] < 40, f"{created['n']} cards were created while scrolling; they should be reused"
     assert grid.pool_count >= 0
+
+
+def test_wait_for_workers_lets_background_threads_finish(qapp):
+    import time as _t
+    from nolde_launcher.ui.workers import run_async, wait_for_workers, _ACTIVE
+    worker = run_async(lambda: _t.sleep(0.2))
+    assert worker.isRunning() or worker in _ACTIVE
+    wait_for_workers(5000)
+    assert not worker.isRunning()
