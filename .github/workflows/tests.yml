@@ -23,4 +23,16 @@ jobs:
       - name: Lint
         run: python -m pyflakes nolde_launcher tests main.py scripts
       - name: Test
-        run: python -m pytest tests -q
+        id: pytest
+        # The process exit code is not used to decide the result: see scripts/check_junit.py.
+        continue-on-error: true
+        run: python -m pytest tests -q --junitxml=test-results.xml
+      - name: Check test results
+        run: python scripts/check_junit.py test-results.xml
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test-results.xml
+          if-no-files-found: ignore
