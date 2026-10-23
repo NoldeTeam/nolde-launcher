@@ -1,5 +1,9 @@
 name: Release
 
+env:
+  # Run JavaScript actions on Node 24 (Node 20 is being removed from GitHub runners).
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 # Runs when a version tag such as v0.2.0 is pushed.
 # The installer is built on a Windows runner and attached to a GitHub release.
 on:
