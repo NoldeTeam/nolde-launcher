@@ -116,8 +116,7 @@ See [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
-Not chosen yet. Until a `LICENSE` file is added, the code is under all-rights-reserved copyright,
-which means nobody may copy, modify or redistribute it without permission.
+Released under the [MIT License](LICENSE). Copyright (c) 2026 NoldeTeam.
 
 ## Third-party components
 

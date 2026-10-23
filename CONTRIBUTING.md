@@ -28,6 +28,10 @@ Both must pass. CI runs the same two commands on Windows.
 - Add a test for each bug you fix.
 - Do not commit personal paths, tokens or game files.
 
+## License of contributions
+
+By contributing, you agree that your changes are released under the MIT License (see `LICENSE`).
+
 ## Reporting security problems
 
 See [SECURITY.md](SECURITY.md). Please do not open a public issue for them.

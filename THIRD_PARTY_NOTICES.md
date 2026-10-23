@@ -1,5 +1,9 @@
 # Third-party notices
 
+## This project
+
+Nolde Launcher itself is released under the MIT License. See `LICENSE`.
+
 ## Functional reference
 Nolde Launcher was designed after studying the workflow of **GithubLauncher**
 by SirDiabo (https://github.com/SirDiabo/GithubLauncher), which is released

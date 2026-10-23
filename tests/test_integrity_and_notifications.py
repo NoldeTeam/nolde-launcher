@@ -118,3 +118,10 @@ def test_notifier_does_nothing_without_a_system_tray(qapp, monkeypatch):
     assert notifier.available is False
     assert notifier.notify("Title", "Body") is False  # no tray: skipped without error
     notifier.set_enabled(False)  # also safe
+
+
+def test_license_file_exists_and_is_referenced_by_the_installer():
+    root = Path(__file__).resolve().parents[1]
+    text = (root / "LICENSE").read_text(encoding="utf-8")
+    assert text.startswith("MIT License") and "NoldeTeam" in text
+    assert "LicenseFile=..\\..\\LICENSE" in INSTALLER.read_text(encoding="utf-8")

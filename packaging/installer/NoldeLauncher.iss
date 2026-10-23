@@ -26,6 +26,7 @@ PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
+LicenseFile=..\..\LICENSE
 OutputDir=..\..\dist\installer
 OutputBaseFilename=NoldeLauncher-Setup-{#MyAppVersion}
 Compression=lzma2
