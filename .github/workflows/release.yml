@@ -1,0 +1,47 @@
+name: Release
+
+# Runs when a version tag such as v0.2.0 is pushed.
+# The installer is built on a Windows runner and attached to a GitHub release.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build-installer:
+    runs-on: windows-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+      - name: Check the tag matches the code version
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}".TrimStart("v")
+          $code = python -c "import sys; sys.path.insert(0,'.'); from nolde_launcher.app.version import __version__; print(__version__)"
+          if ($tag -ne $code) { throw "Tag v$tag does not match nolde_launcher/app/version.py ($code)." }
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+      - name: Build installer
+        shell: pwsh
+        run: ./scripts/build_installer.ps1 -Version "${{ github.ref_name }}".TrimStart("v")
+      - name: Upload installer as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer
+          path: dist/installer/*.exe
+      - name: Attach installer to the release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/installer/*.exe
+          body: |
+            Windows installer for Nolde Launcher. The installer is not code-signed yet,
+            so Windows SmartScreen may show a warning. Check the SHA-256 published with
+            the release before running it.
