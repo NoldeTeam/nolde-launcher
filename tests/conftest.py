@@ -32,14 +32,12 @@ def pytest_sessionfinish(session, exitstatus):
 
 
 def pytest_unconfigure(config):
-    """Runs after pytest has printed its full report. On CI, end the process here.
-    Qt can abort during interpreter shutdown while a worker thread is still alive, which
-    turned a passing run into exit code 1. Background workers are waited for first.
-    Locally the normal shutdown is kept."""
+    """Runs after pytest has printed its full report. On CI, end the process here, without
+    touching any Qt object. Tests are finished at this point, and on Windows a Qt call made
+    during interpreter shutdown crashed the process with exit code 1. Locally the normal
+    shutdown is kept."""
     if not os.environ.get("CI") or _exit_status["code"] is None:
         return
-    from nolde_launcher.ui.workers import wait_for_workers
-    wait_for_workers(10000)
     sys.stdout.flush()
     sys.stderr.flush()
     os._exit(_exit_status["code"])
