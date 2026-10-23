@@ -22,22 +22,3 @@ def qapp():
     from PySide6.QtWidgets import QApplication
     app = QApplication.instance() or QApplication([])
     yield app
-
-
-_exit_status = {"code": None}
-
-
-def pytest_sessionfinish(session, exitstatus):
-    _exit_status["code"] = exitstatus
-
-
-def pytest_unconfigure(config):
-    """Runs after pytest has printed its full report. On CI, end the process here, without
-    touching any Qt object. Tests are finished at this point, and on Windows a Qt call made
-    during interpreter shutdown crashed the process with exit code 1. Locally the normal
-    shutdown is kept."""
-    if not os.environ.get("CI") or _exit_status["code"] is None:
-        return
-    sys.stdout.flush()
-    sys.stderr.flush()
-    os._exit(_exit_status["code"])
