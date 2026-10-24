@@ -3,6 +3,7 @@ first-launch welcome."""
 
 import hashlib
 import json
+import re
 
 import pytest
 from PySide6.QtWidgets import QToolButton
@@ -34,9 +35,9 @@ def no_http(*a, **k):
 
 # ----- version and early access -----
 
-def test_version_is_early_access_0_3_0():
-    assert __version__ == "0.3.0"
-    assert VERSION_LABEL == "Early Access 0.3.0"
+def test_version_label_follows_the_version_number():
+    assert re.fullmatch(r"\d+\.\d+\.\d+", __version__)
+    assert VERSION_LABEL == f"Early Access {__version__}"
 
 
 @pytest.mark.parametrize("candidate,expected", [("0.3.1", True), ("0.10.0", True), ("0.3.0", False),
