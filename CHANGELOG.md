@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0 — Early Access
+- First public Early Access release.
+- Automatic launcher updates from GitHub releases. The installer's SHA-256 is verified before
+  anything is installed, and the launcher asks before it restarts.
+- Welcome message on the first launch, explaining the Early Access status.
+- Link to the GitHub repository, next to the website link.
+- Release workflow publishes a `.sha256` file next to the installer.
+
 ## 0.2.0
 - Virtualised catalog and library grids; cards are reused while scrolling.
 - Motion levels (full, reduced, off), chosen in Settings.

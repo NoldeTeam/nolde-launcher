@@ -28,6 +28,7 @@ _PATHS = {
     "x": '<path d="M6 6l12 12"/><path d="M18 6L6 18"/>',
     "check": '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
     "gamepad": '<rect x="2.5" y="7" width="19" height="11" rx="5"/><path d="M7 10.5v3M5.5 12h3"/><circle cx="16" cy="11" r=".9"/><circle cx="18" cy="13.5" r=".9"/>',
+    "code": '<path d="M8 8l-4 4 4 4"/><path d="M16 8l4 4-4 4"/><path d="M13.5 5l-3 14"/>',
     "minimize": '<path d="M5 12h14"/>',
     "maximize": '<rect x="5" y="5" width="14" height="14" rx="1.5"/>',
     "restore": '<rect x="8" y="5" width="11" height="11" rx="1.5"/><path d="M5 9v9a1.5 1.5 0 0 0 1.5 1.5H15"/>',

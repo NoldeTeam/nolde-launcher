@@ -36,16 +36,29 @@ jobs:
       - name: Build installer
         shell: pwsh
         run: ./scripts/build_installer.ps1 -Version "${{ github.ref_name }}".TrimStart("v")
+      - name: Write the SHA-256 file next to the installer
+        # The launcher's automatic update reads this hash and refuses a download that does not match.
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem dist/installer/*.exe | Select-Object -First 1
+          $hash = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash.ToLower()
+          "$hash  $($exe.Name)" | Set-Content -Encoding ascii "$($exe.FullName).sha256"
       - name: Upload installer as artifact
         uses: actions/upload-artifact@v4
         with:
           name: installer
-          path: dist/installer/*.exe
+          path: |
+            dist/installer/*.exe
+            dist/installer/*.sha256
       - name: Attach installer to the release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/installer/*.exe
+          files: |
+            dist/installer/*.exe
+            dist/installer/*.sha256
           body: |
-            Windows installer for Nolde Launcher. The installer is not code-signed yet,
-            so Windows SmartScreen may show a warning. Check the SHA-256 published with
-            the release before running it.
+            Nolde Launcher Early Access. Install the .exe, or keep an existing installation:
+            the launcher checks GitHub for new releases and installs them after you agree.
+
+            The installer is not code-signed yet, so Windows SmartScreen may show a warning.
+            Check the SHA-256 in the .sha256 file before running it.

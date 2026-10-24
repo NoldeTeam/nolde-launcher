@@ -12,7 +12,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QFormLayout, QFrame, QHBoxLayout,
                                QLabel, QLineEdit, QPushButton, QScrollArea, QVBoxLayout, QWidget)
 
-from ..app.version import APP_NAME, __version__
+from ..app.version import APP_NAME, VERSION_LABEL, __version__
 from ..localization.i18n import t
 from ..storage.settings import (CARD_SIZES, CONCURRENT_CHOICES, DISK_CACHE_CHOICES, GRID_ART,
                                 IMAGE_CACHE_CHOICES, MOTION_LEVELS)
@@ -148,9 +148,10 @@ class SettingsPage(QWidget):
         self.launcher_update_label.setWordWrap(True)
         row.addWidget(self.launcher_update_label, 1)
         check = QPushButton(icon("retry", "#e9edf5", 16), t("settings.check_launcher_update"))
-        check.clicked.connect(self._actions.check_launcher_update)
+        check.clicked.connect(lambda: self._actions.check_launcher_update())
         row.addWidget(check)
         layout.addLayout(row)
+        layout.addWidget(self._check("check_launcher_updates", t("settings.check_launcher_updates")))
         layout.addWidget(_hint(t("settings.updates_hint")))
         layout.addWidget(self._check("notifications", t("settings.notifications")))
         return panel
@@ -171,7 +172,7 @@ class SettingsPage(QWidget):
     def _about_panel(self) -> QFrame:
         panel, layout = _panel()
         layout.addWidget(_heading(t("settings.section_about")))
-        layout.addWidget(QLabel(f"{APP_NAME} · {t('settings.version', version=__version__)}"))
+        layout.addWidget(QLabel(f"{APP_NAME} · {VERSION_LABEL}"))
         row = QHBoxLayout()
         row.addWidget(_hint(t("settings.diagnostics_hint")), 1)
         export = QPushButton(icon("folder", "#e9edf5", 16), t("settings.export_diagnostics"))

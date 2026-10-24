@@ -1,14 +1,12 @@
 """Tests for the v2 features: virtualised grid, motion levels, disk cache, play time,
 game and launcher updates, pause and resume, diagnostics, sorting and shortcuts."""
 
-import hashlib
 import json
 import sys
 import time
 from pathlib import Path
 
 import pytest
-import requests
 from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 from nolde_launcher.models.project import CatalogProject
@@ -16,9 +14,7 @@ from nolde_launcher.services.download_manager import (DownloadPaused, DownloadSt
                                                       DownloadTask, download_to_file)
 from nolde_launcher.services.release_service import ReleaseAsset, ReleaseInfo, ResolvedBuild
 from nolde_launcher.services.source_resolver import Availability, PrimaryAction
-from nolde_launcher.services.update_service import (LauncherUpdateError, check_game_updates,
-                                                    download_launcher_package, is_newer,
-                                                    parse_manifest)
+from nolde_launcher.services.update_service import check_game_updates
 from nolde_launcher.services.diagnostics import redact
 from nolde_launcher.storage.settings import SettingsService
 from tests.helpers import FakeResponse, FakeSession
@@ -285,56 +281,6 @@ def _wait(predicate, timeout=5.0):
             return
         time.sleep(0.01)
     raise AssertionError("condition not met in time")
-
-
-# ----- launcher update manifest -----
-
-GOOD = {"version": "0.2.0", "url": "https://github.com/nolde/launcher/releases/download/v0.2.0/NoldeLauncher-0.2.0.zip",
-        "sha256": "a" * 64, "notes": "Fixes"}
-
-
-def test_valid_manifest_is_accepted_and_compared_numerically():
-    manifest = parse_manifest(json.dumps(GOOD))
-    assert manifest.version == "0.2.0"
-    assert is_newer("0.10.0", "0.9.0") and not is_newer("0.1.0", "0.1.0")
-
-
-@pytest.mark.parametrize("change", [
-    {"url": "http://github.com/x.zip"},                # not HTTPS
-    {"url": "https://evil.example.com/x.zip"},         # not an allowed host
-    {"sha256": "not-a-hash"},                          # no valid SHA-256
-    {"version": "latest"},                             # not numeric
-])
-def test_invalid_manifests_are_rejected(change):
-    with pytest.raises(LauncherUpdateError):
-        parse_manifest(json.dumps({**GOOD, **change}))
-
-
-def test_launcher_package_with_wrong_hash_is_deleted(tmp_path):
-    from nolde_launcher.services.update_service import LauncherManifest
-    body = b"package bytes"
-    url = "https://github.com/nolde/launcher/releases/download/v0.2.0/Pkg.zip"
-    manifest = LauncherManifest("0.2.0", url, "0" * 64)
-    sess = FakeSession(lambda u, k: FakeResponse(200, body, {"Content-Length": str(len(body))}, url=url))
-    with pytest.raises(LauncherUpdateError):
-        download_launcher_package(manifest, tmp_path, session=sess)
-    assert not (tmp_path / "Pkg.zip").exists()
-
-
-def test_launcher_package_with_correct_hash_is_saved(tmp_path):
-    from nolde_launcher.services.update_service import LauncherManifest
-    body = b"package bytes"
-    url = "https://github.com/nolde/launcher/releases/download/v0.2.0/Pkg.zip"
-    manifest = LauncherManifest("0.2.0", url, hashlib.sha256(body).hexdigest())
-    sess = FakeSession(lambda u, k: FakeResponse(200, body, {"Content-Length": str(len(body))}, url=url))
-    saved = download_launcher_package(manifest, tmp_path, session=sess)
-    assert saved.read_bytes() == body
-
-
-def test_no_update_source_is_reported_plainly():
-    from nolde_launcher.services.update_service import fetch_manifest
-    with pytest.raises(LauncherUpdateError, match="no update source"):
-        fetch_manifest("", requests.get)
 
 
 # ----- diagnostics privacy -----

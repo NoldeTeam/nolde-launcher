@@ -7,21 +7,23 @@ Back returns to wherever the user was.
 from __future__ import annotations
 
 import logging
+import os
+import subprocess
 from pathlib import Path
 
 from PySide6.QtCore import QEasingCurve, QEvent, QPoint, QPropertyAnimation, QRect, QSize, QTimer, QUrl, Qt
 from PySide6.QtGui import QDesktopServices, QKeySequence, QPixmap, QShortcut
-from PySide6.QtWidgets import (QFrame, QHBoxLayout, QInputDialog, QLabel, QMainWindow, QMessageBox,
-                               QPushButton, QStackedWidget, QToolButton, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QApplication, QFrame, QHBoxLayout, QInputDialog, QLabel, QMainWindow,
+                               QMessageBox, QPushButton, QStackedWidget, QToolButton, QVBoxLayout, QWidget)
 
 import requests
 from PySide6.QtCore import qVersion
 from PySide6.QtWidgets import QFileDialog
 
-from ..app.version import APP_NAME, LAUNCHER_UPDATE_URL, NOLDE_WEBSITE, __version__
+from ..app.version import APP_NAME, NOLDE_WEBSITE, REPO_URL, VERSION_LABEL, __version__
 from ..services.diagnostics import build_report
-from ..services.update_service import (LauncherUpdateError, check_game_updates,
-                                      download_launcher_package, fetch_manifest, is_newer)
+from ..services.update_service import (check_game_updates, check_latest_release,
+                                      download_installer, installer_arguments, is_installed_build)
 from ..storage.paths import logs_dir
 from ..services.integrity import build_manifest, load_manifest, save_manifest
 from ..services.integrity import verify_install as check_install
@@ -48,6 +50,7 @@ from .format import time_ago
 from .workers import run_async
 
 log = logging.getLogger("nolde.ui")
+STARTUP_TASKS_SWITCH = "NOLDE_SKIP_STARTUP_TASKS"  # set by the test suite
 
 PAGE_LIBRARY, PAGE_DISCOVER, PAGE_DOWNLOADS, PAGE_SETTINGS, PAGE_PROJECT = range(5)
 NAV = (
@@ -96,6 +99,7 @@ class MainWindow(QMainWindow):
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
         self.titlebar = TitleBar(self)
+        self.titlebar.title.setText(f"{APP_NAME}  ·  {VERSION_LABEL}")
         root.addWidget(self.titlebar)
         row = QHBoxLayout()
         row.setContentsMargins(0, 0, 0, 0)
@@ -136,8 +140,13 @@ class MainWindow(QMainWindow):
         self._update_downloads_badge()
         self.apply_settings()
         self.show_page(PAGE_DISCOVER, animate=False)  # the catalog opens first
-        if self.services.settings.settings.check_updates_on_start:
-            QTimer.singleShot(2500, lambda: self.check_updates(silent=True))
+        if not os.environ.get(STARTUP_TASKS_SWITCH):  # tests run without popups or network checks
+            if self.services.settings.settings.check_updates_on_start:
+                QTimer.singleShot(2500, lambda: self.check_updates(silent=True))
+            if self.services.settings.settings.check_launcher_updates:
+                QTimer.singleShot(4000, lambda: self.check_launcher_update(silent=True))
+            if not self.services.settings.settings.welcome_seen:
+                QTimer.singleShot(900, self._show_welcome)
 
     def apply_settings(self) -> None:
         """Push every appearance and performance setting into the running app. No restart needed."""
@@ -212,6 +221,16 @@ class MainWindow(QMainWindow):
         site.setFixedSize(38, 38)
         site.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(NOLDE_WEBSITE)))
         site_row.addWidget(site)
+        repo = QToolButton()
+        repo.setObjectName("RepoButton")
+        repo.setIcon(icon("code", "#8793a8", 18))
+        repo.setIconSize(QSize(18, 18))
+        repo.setToolTip(t("nav.repository"))
+        repo.setCursor(Qt.CursorShape.PointingHandCursor)
+        repo.setFixedSize(38, 38)
+        repo.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(REPO_URL)))
+        site_row.addSpacing(6)
+        site_row.addWidget(repo)
         site_row.addStretch(1)
         side.addLayout(site_row)
         self._nav_indicator = QFrame(sidebar)
@@ -495,34 +514,66 @@ class MainWindow(QMainWindow):
 
     # ----- launcher update (verified download; installing stays manual) -----
 
-    def check_launcher_update(self) -> None:
-        self.settings_page.set_launcher_update_text(t("settings.launcher_checking"))
-        run_async(self._launcher_update_job, on_ok=self._on_launcher_update,
-                  on_err=lambda exc: self.settings_page.set_launcher_update_text(
-                      t("settings.launcher_update_failed", reason=str(exc))), parent=self)
+    def _show_welcome(self) -> None:
+        """Shown once, on the first launch. Marked as seen when it is closed."""
+        from .welcome_dialog import WelcomeDialog
+        dialog = WelcomeDialog(self)
+        dialog.exec()
+        self.services.settings.update(welcome_seen=True)
+
+    def check_launcher_update(self, silent: bool = False) -> None:
+        """Look for a newer launcher on GitHub. `silent` is used at startup: nothing is shown
+        unless an update is ready, and errors are kept out of the way."""
+        if not silent:
+            self.settings_page.set_launcher_update_text(t("settings.launcher_checking"))
+        run_async(self._launcher_update_job,
+                  on_ok=lambda result: self._on_launcher_update(result, silent),
+                  on_err=lambda exc: self._on_launcher_update_error(exc, silent), parent=self)
 
     def _launcher_update_job(self):
-        if not LAUNCHER_UPDATE_URL:
-            raise LauncherUpdateError(t("settings.launcher_not_configured"))
-        manifest = fetch_manifest(LAUNCHER_UPDATE_URL, requests.get)
-        if not is_newer(manifest.version, __version__):
+        release = check_latest_release(requests.get)
+        if release is None:
             return ("current", None, None)
-        package = download_launcher_package(manifest, self.services.settings.download_dir / "launcher")
-        return ("ready", manifest, package)
+        installer = download_installer(release, self.services.settings.download_dir / "launcher")
+        return ("ready", release, installer)
 
-    def _on_launcher_update(self, result) -> None:
-        state, manifest, package = result
+    def _on_launcher_update(self, result, silent: bool) -> None:
+        state, release, installer = result
         if state == "current":
-            self.settings_page.set_launcher_update_text(t("settings.launcher_current", version=__version__))
+            if not silent:
+                self.settings_page.set_launcher_update_text(
+                    t("settings.launcher_current", version=__version__))
             return
-        self.settings_page.set_launcher_update_text(
-            t("settings.launcher_ready", version=manifest.version, path=str(package.parent)))
-        self.notifier.notify(t("notify.launcher_title"), t("settings.launcher_ready",
-                                                           version=manifest.version, path=str(package.parent)))
-        self.toast.show_message(t("settings.launcher_ready", version=manifest.version,
-                                  path=str(package.parent)), "success", 8000)
+        text = t("settings.launcher_ready", version=release.version, path=str(installer.parent))
+        self.settings_page.set_launcher_update_text(text)
+        self.notifier.notify(t("notify.launcher_title"), text)
+        if not is_installed_build():
+            self.toast.show_message(t("settings.launcher_source_build", version=release.version), "info", 8000)
+            return
+        answer = QMessageBox.question(
+            self, t("update.ready_title"),
+            t("update.ready_body", version=release.version),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        if answer == QMessageBox.StandardButton.Yes:
+            self._install_update(installer)
+        else:
+            self.settings_page.set_launcher_update_text(t("update.later", version=release.version))
 
-    # ----- diagnostics and cache -----
+    def _on_launcher_update_error(self, exc: Exception, silent: bool) -> None:
+        if silent:
+            log.info("launcher update check skipped: %s", exc.__class__.__name__)
+            return
+        self.settings_page.set_launcher_update_text(t("settings.launcher_update_failed", reason=str(exc)))
+
+    def _install_update(self, installer: Path) -> None:
+        """Start the verified installer in silent mode, then close this launcher so the upgrade
+        can replace its files. The installer restarts the launcher when it finishes."""
+        try:
+            subprocess.Popen(installer_arguments(installer), shell=False, close_fds=True)
+        except OSError as exc:
+            self.toast.show_message(t("update.failed", reason=exc.__class__.__name__), "error", 8000)
+            return
+        QApplication.quit()
 
     def export_diagnostics(self) -> None:
         path, _ = QFileDialog.getSaveFileName(self, t("settings.export_diagnostics"),

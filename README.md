@@ -7,7 +7,8 @@ decompilation, recompilation, reimplementation and port projects. It finds proje
 their public Windows builds from GitHub Releases, installs them, and starts them, without Steam,
 Epic or another launcher.
 
-> **Status: 0.2.0.** Working, but not finished. See [Known limitations](#known-limitations).
+> **Status: Early Access 0.3.0.** Working, but not finished, and it changes quickly. See
+> [Known limitations](#known-limitations).
 
 ## Install (players)
 
@@ -28,6 +29,9 @@ Windows 10 or 11, 64-bit. The installer is not code-signed yet, so SmartScreen m
   against an integrity record, open the folder, or uninstall.
 - **Downloads:** progress, speed, time left, pause, resume, cancel and retry.
 - **Notifications:** Windows notifications when installs finish or updates are found.
+- **Launcher updates:** checked against this repository's latest release when the launcher
+  starts. A new version is downloaded, its SHA-256 is verified, and you are asked before it is
+  installed and the launcher restarts. Turn this off in Settings.
 - **Settings:** card appearance, animation level, artwork cache limit, download limit,
   update checks, and a diagnostics export with personal data removed.
 
@@ -83,8 +87,8 @@ scripts/                build scripts and the JUnit result checker
   suspicious compression ratios are refused.
 - Installation never runs anything. The first launch of each game needs your confirmation.
 - Games start without a shell and never with elevated rights.
-- Launcher updates are downloaded and their SHA-256 is checked, but they are not installed
-  automatically yet.
+- Launcher updates are installed only after you agree, and only if their SHA-256 matches the
+  release.
 
 Details are in [SECURITY.md](SECURITY.md).
 
@@ -94,8 +98,9 @@ Details are in [SECURITY.md](SECURITY.md).
   them restarts the download from zero.
 - **Game updates replace the game folder.** Save files kept inside it are replaced. The
   confirmation dialog warns about this.
-- **Launcher updates are manual.** There is no official update source configured yet, and
-  installing a new launcher version still needs a signed installer.
+- **Installers are not code-signed.** Windows SmartScreen may warn, and the update relies on the
+  SHA-256 published with each release. Check it when you install by hand.
+- **Early Access 0.2.x users** must install 0.3.0 once by hand. Automatic updates start from 0.3.0.
 - **Game compatibility varies.** Many projects need extra files, specific game versions or
   setup steps that the launcher does not automate. Some need a copy of the original game,
   which the launcher never provides.

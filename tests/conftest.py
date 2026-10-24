@@ -12,6 +12,7 @@ import tempfile  # noqa: E402
 _TEST_DATA = tempfile.mkdtemp(prefix="nolde-test-data-")
 os.environ["NOLDE_DATA_DIR"] = _TEST_DATA
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+os.environ.setdefault("NOLDE_SKIP_STARTUP_TASKS", "1")  # no welcome popup, no network at startup
 
 
 import pytest  # noqa: E402

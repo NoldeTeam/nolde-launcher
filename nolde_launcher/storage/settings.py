@@ -35,7 +35,7 @@ _CHOICES = {
     "discover_sort": SORT_CHOICES,
 }
 _BOOLS = {"show_card_details", "load_images", "refresh_catalog_on_start", "check_updates_on_start",
-          "notifications"}
+          "notifications", "check_launcher_updates", "welcome_seen"}
 _PATHS = {"library_dir", "download_dir"}
 
 
@@ -60,6 +60,8 @@ class Settings:
     discover_sort: str = "name"             # name | updated | progress
     check_updates_on_start: bool = True     # look for new versions of installed games
     notifications: bool = True              # Windows notifications when work finishes
+    check_launcher_updates: bool = True     # look for a newer launcher on GitHub at startup
+    welcome_seen: bool = False              # the Early Access welcome has been shown once
 
     @classmethod
     def defaults(cls) -> "Settings":
