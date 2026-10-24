@@ -29,6 +29,7 @@ def sort_projects(projects, how: str):
 class DiscoverPage(QWidget):
     open_project = Signal(str)
     refresh_requested = Signal()
+    add_requested = Signal()
 
     def __init__(self, services, parent=None) -> None:
         super().__init__(parent)
@@ -51,6 +52,9 @@ class DiscoverPage(QWidget):
         self.count_label.setObjectName("Muted")
         titles.addWidget(self.count_label)
         header.addLayout(titles, 1)
+        self.add_btn = QPushButton(t("custom.add_button"))
+        self.add_btn.clicked.connect(self.add_requested.emit)
+        header.addWidget(self.add_btn)
         self.refresh_btn = QPushButton(t("discover.refresh"))
         header.addWidget(self.refresh_btn)
         root.addLayout(header)
@@ -171,6 +175,8 @@ class DiscoverPage(QWidget):
         project = self._by_id[project_id]
         display = self._display()
         badges = []
+        if project.custom:
+            badges.append((t("custom.badge"), "accent"))
         if project.status != "available":
             badges.append((t(status_label_key(project.status)), "default"))
         build_key = static_hint(project)

@@ -20,7 +20,7 @@ import requests
 from PySide6.QtCore import qVersion
 from PySide6.QtWidgets import QFileDialog
 
-from ..app.version import APP_NAME, NOLDE_WEBSITE, REPO_URL, VERSION_LABEL, __version__
+from ..app.version import APP_NAME, NOLDE_WEBSITE, REPO_URL, __version__
 from ..services.diagnostics import build_report
 from ..services.update_service import (check_game_updates, check_latest_release,
                                       download_installer, installer_arguments, is_installed_build)
@@ -32,7 +32,10 @@ from .theme import APP_ICON_PATH
 from ..localization.i18n import t
 from ..services.catalog_service import CatalogSnapshot
 from ..services.launch_manager import LaunchError, LaunchRequest
-from ..services.library_service import LibraryService, make_library_store
+from ..services.library_service import InstallRecord, LibraryService, make_library_store
+from ..services.custom_apps import CustomAppStore
+from ..services.install_manager import InstallError, resolve_inside
+from ..services.install_naming import folder_name_for
 from ..services.source_resolver import Availability
 from ..storage.paths import cache_dir, user_data_dir
 from .discover_page import DiscoverPage
@@ -74,6 +77,9 @@ class MainWindow(QMainWindow):
         self.resize(1240, 800)
         self.setMinimumSize(920, 600)
         self._projects_by_id: dict[str, object] = {}
+        self._catalog_raw = startup_snapshot   # the catalog as downloaded or loaded from cache
+        self._catalog_error = startup_error
+        self.custom_store = CustomAppStore(user_data_dir() / "custom_apps.json")
         self._snapshot = startup_snapshot
         self._catalog_busy = False
         self._return_page = PAGE_LIBRARY
@@ -83,6 +89,7 @@ class MainWindow(QMainWindow):
 
         self.images = ImageCache(cache_dir(), self)
         self.images.ready.connect(self._on_image_ready)
+        self._snapshot = self._merged(startup_snapshot)
         self.installs = InstallController(services, self._choose_executable_from_list, self)
         self.installs.status_changed.connect(lambda _pid, msg: self.statusBar().showMessage(msg))
         self.installs.finished_ok.connect(self._on_install_ok)
@@ -100,7 +107,7 @@ class MainWindow(QMainWindow):
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
         self.titlebar = TitleBar(self)
-        self.titlebar.title.setText(f"{APP_NAME}  ·  {VERSION_LABEL}")
+        self.titlebar.title.setText("")  # window buttons only
         root.addWidget(self.titlebar)
         row = QHBoxLayout()
         row.setContentsMargins(0, 0, 0, 0)
@@ -134,7 +141,8 @@ class MainWindow(QMainWindow):
         self.notifier = Notifier(QIcon(str(APP_ICON_PATH)), self,
                                  lambda: self.services.settings.settings.notifications, self)
         self.stack.currentChanged.connect(self._on_page_changed)
-        self.discover.set_snapshot(startup_snapshot, startup_error)
+        self.discover.set_snapshot(self._snapshot, startup_error)
+        self.discover.add_requested.connect(self.open_add_app)
         self.settings_page.set_catalog_status(startup_snapshot)
         self._index_projects()
         self._refresh_library()
@@ -148,6 +156,18 @@ class MainWindow(QMainWindow):
                 QTimer.singleShot(4000, lambda: self.check_launcher_update(silent=True))
             if not self.services.settings.settings.welcome_seen:
                 QTimer.singleShot(900, self._show_welcome)
+
+    def apply_theme(self) -> None:
+        """Rebuild the colours from the saved choice and restyle the whole application."""
+        from PySide6.QtWidgets import QApplication
+        from .palette import apply_palette
+        from .theme import build_stylesheet
+        s = self.services.settings.settings
+        try:
+            apply_palette(s.theme_primary, s.theme_secondary)
+        except ValueError:
+            apply_palette()
+        QApplication.instance().setStyleSheet(build_stylesheet())
 
     def apply_settings(self) -> None:
         """Push every appearance and performance setting into the running app. No restart needed."""
@@ -215,7 +235,7 @@ class MainWindow(QMainWindow):
         site_row.setContentsMargins(18, 0, 0, 0)
         site = QToolButton()
         site.setObjectName("SiteButton")
-        site.setIcon(icon("globe", "#8793a8", 18))
+        site.setIcon(QIcon(str(APP_ICON_PATH)))  # the launcher's own icon
         site.setIconSize(QSize(18, 18))
         site.setToolTip(t("nav.website"))
         site.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -224,7 +244,7 @@ class MainWindow(QMainWindow):
         site_row.addWidget(site)
         repo = QToolButton()
         repo.setObjectName("RepoButton")
-        repo.setIcon(icon("code", "#8793a8", 18))
+        repo.setIcon(icon("github", "#8793a8", 18))
         repo.setIconSize(QSize(18, 18))
         repo.setToolTip(t("nav.repository"))
         repo.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -297,6 +317,79 @@ class MainWindow(QMainWindow):
 
     # ----- catalog -----
 
+    def _merged(self, snapshot):
+        """The catalog plus the user's own apps. Each app's icon address is allowed for artwork."""
+        customs = []
+        for spec in self.custom_store.list():
+            customs.append(spec.to_project())
+            if spec.icon_url and getattr(self, "images", None) is not None:
+                self.images.allow_url(spec.icon_url)
+        base = snapshot.projects if snapshot else ()
+        source = snapshot.source if snapshot else "custom"
+        fetched = snapshot.fetched_at if snapshot else 0.0
+        skipped = snapshot.skipped_entries if snapshot else 0
+        return CatalogSnapshot(tuple(base) + tuple(customs), source, fetched, skipped)
+
+    def _customs_changed(self) -> None:
+        self._snapshot = self._merged(self._catalog_raw)
+        self._index_projects()
+        self.discover.set_snapshot(self._snapshot, self._catalog_error)
+
+    def open_add_app(self) -> None:
+        from .custom_app_dialog import CustomAppDialog
+        dialog = CustomAppDialog(parent=self)
+        if dialog.exec() and dialog.result_spec is not None:
+            spec = self.custom_store.add(dialog.result_spec)
+            self._customs_changed()
+            self.open_project(spec.id)
+
+    def edit_custom_app(self, project_id: str) -> None:
+        from .custom_app_dialog import CustomAppDialog
+        spec = self.custom_store.get(project_id)
+        if spec is None:
+            return
+        dialog = CustomAppDialog(spec, parent=self)
+        if dialog.exec() and dialog.result_spec is not None:
+            self.custom_store.update(project_id, dialog.result_spec)
+            self._customs_changed()
+            self.open_project(project_id)
+
+    def remove_custom_app(self, project_id: str) -> None:
+        if self.services.library.get(project_id) is not None:
+            self.toast.show_message(t("custom.uninstall_first"), "error", 6000)
+            return
+        answer = QMessageBox.question(self, t("custom.remove_title"), t("custom.remove_body"),
+                                      QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        self.custom_store.remove(project_id)
+        self._customs_changed()
+        self.go_back()
+
+    def register_manual(self, project) -> None:
+        """Manual apps: open the app's folder in the library, then the user names the program."""
+        folder = self.services.library.library_dir / folder_name_for(project)
+        folder.mkdir(parents=True, exist_ok=True)
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder)))
+        path, _ = QFileDialog.getOpenFileName(self, t("custom.pick_program"), str(folder),
+                                              "Programs (*.exe);;All files (*)")
+        if not path:
+            return
+        try:
+            relative = Path(path).resolve().relative_to(folder.resolve()).as_posix()
+            resolve_inside(folder, relative)
+        except (InstallError, ValueError):
+            self.toast.show_message(t("error.unexpected", reason="the program is outside the app folder"),
+                                    "error", 6000)
+            return
+        record = InstallRecord(project_id=project.id, game_title=project.game_title,
+                               project_name=project.project_name, install_folder=folder.name,
+                               main_executable=relative, installed_version="",
+                               source_provider="manual", state="installed")
+        self.services.library.add_or_replace(record)
+        self._refresh_library()
+        self.toast.show_message(t("custom.registered", name=project.game_title), "success", 4000)
+
     def _index_projects(self) -> None:
         self._projects_by_id = {p.id: p for p in (self._snapshot.projects if self._snapshot else ())}
 
@@ -324,9 +417,11 @@ class MainWindow(QMainWindow):
 
     def _on_refresh_ok(self, snapshot: CatalogSnapshot) -> None:
         self._catalog_busy = False
-        self._snapshot = snapshot
+        self._catalog_raw = snapshot
+        self._catalog_error = ""
+        self._snapshot = self._merged(snapshot)
         self._index_projects()
-        self.discover.set_snapshot(snapshot)
+        self.discover.set_snapshot(self._snapshot)
         self.settings_page.set_catalog_status(snapshot)
         self.statusBar().showMessage(t("loading.ready"), 4000)
         self.toast.show_message(t("loading.ready"), "success", 3000)

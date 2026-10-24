@@ -22,6 +22,7 @@ class PrimaryAction(Enum):
     INSTALL = "install"
     OPEN_PAGE = "open_page"
     UNAVAILABLE = "unavailable"
+    MANUAL = "manual"              # a user-added app whose files the user places by hand
 
 
 @dataclass(frozen=True)
@@ -42,6 +43,8 @@ class SourceResolver:
         self._providers = list(providers)
 
     def resolve(self, project: CatalogProject) -> Availability:
+        if project.management == "manual":
+            return Availability(PrimaryAction.MANUAL, reason_key="custom.manual_hint")
         page = project.project_page_url
         repo = project.repository_url
 
@@ -53,7 +56,7 @@ class SourceResolver:
             return self._fallback(page, "availability.gitlab_note")
 
         try:
-            build = provider.resolve(repo)
+            build = provider.resolve(repo, project.asset_filter) if project.asset_filter else provider.resolve(repo)
         except ReleaseError as exc:
             key = {
                 "no_release": "availability.reason_no_release",

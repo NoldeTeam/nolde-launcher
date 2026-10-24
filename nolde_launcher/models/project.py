@@ -73,6 +73,14 @@ class CatalogProject:
     progress: int | None = None
     made_with_ai: bool = False
     sources: tuple[str, ...] = field(default_factory=tuple)
+    # Fields for apps the user adds (see services/custom_apps.py). Catalog projects leave them empty.
+    custom: bool = False
+    management: str = "catalog"          # catalog | managed | manual
+    asset_filter: str = ""               # glob for the release file (managed custom apps)
+    files_to_add: tuple[str, ...] = ()   # local files copied into the game folder after install
+    mods_path: str = ""                  # folder inside the game folder for mods
+    mod_sources: tuple[str, ...] = ()    # GitHub repositories of mods
+    mods_own_folder: bool = True         # True: each mod gets its own folder
 
     @property
     def search_text(self) -> str:

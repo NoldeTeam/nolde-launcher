@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from dataclasses import asdict, dataclass, fields
 from pathlib import Path
 from typing import Any
@@ -37,6 +38,7 @@ _CHOICES = {
 _BOOLS = {"show_card_details", "load_images", "refresh_catalog_on_start", "check_updates_on_start",
           "notifications", "check_launcher_updates", "welcome_seen"}
 _PATHS = {"library_dir", "download_dir"}
+_COLOURS = {"theme_primary", "theme_secondary"}
 
 
 def default_motion_level() -> str:
@@ -62,6 +64,8 @@ class Settings:
     notifications: bool = True              # Windows notifications when work finishes
     check_launcher_updates: bool = True     # look for a newer launcher on GitHub at startup
     welcome_seen: bool = False              # the Early Access welcome has been shown once
+    theme_primary: str = ""                 # background colour (#RRGGBB); empty = built-in
+    theme_secondary: str = ""               # button and line colour (#RRGGBB); empty = built-in
 
     @classmethod
     def defaults(cls) -> "Settings":
@@ -73,6 +77,9 @@ class Settings:
 def _valid(name: str, value: Any, default: Any) -> Any:
     if name in _PATHS:
         return value if isinstance(value, str) and value else default
+    if name in _COLOURS:  # empty means the built-in colour; anything else must be #RRGGBB
+        ok = value == "" or (isinstance(value, str) and re.match(r"^#[0-9a-fA-F]{6}$", value))
+        return value if ok else default
     if name in _BOOLS:
         return value if isinstance(value, bool) else default
     if name in _CHOICES:

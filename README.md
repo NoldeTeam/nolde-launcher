@@ -29,6 +29,10 @@ Windows 10 or 11, 64-bit. The installer is not code-signed yet, so SmartScreen m
   against an integrity record, open the folder, or uninstall.
 - **Downloads:** progress, speed, time left, pause, resume, cancel and retry.
 - **Notifications:** Windows notifications when installs finish or updates are found.
+- **Your own apps:** add any project as a managed app (a GitHub repository, with updates and
+  mods) or a manual app (you put the files in place and register the program). Find the
+  "Add my own app" button in Discover.
+- **Colours:** choose the primary and secondary colours in Settings.
 - **Launcher updates:** checked against this repository's latest release when the launcher
   starts. A new version is downloaded, its SHA-256 is verified, and you are asked before it is
   installed and the launcher restarts. Turn this off in Settings.

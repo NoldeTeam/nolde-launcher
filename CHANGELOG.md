@@ -1,10 +1,20 @@
 # Changelog
 
+## 0.3.2
+- Colour themes: choose a primary colour (backgrounds) and a secondary colour (buttons and
+  lines) in Settings. The other colours are derived from these two.
+- Add your own app: name, author, display name, GitHub repository, release file filter,
+  folder name, tags, icon address, files to copy in, mods folder, mod sources, and one folder per mod.
+  Managed apps install from their repository and update from it. Manual apps have no download:
+  you put the files in their folder and register the program.
+- Sidebar: the GitHub mark links to the repository; the launcher's icon links to the website.
+- The title bar shows only the window buttons.
+
 ## 0.3.1 - Early Access
 - Bugs Fixes
 - Add nolde.ico
 
-## 0.3.0 — Pre Early Access
+## 0.3.0 — Early Access
 - First public Early Access release.
 - Automatic launcher updates from GitHub releases. The installer's SHA-256 is verified before
   anything is installed, and the launcher asks before it restarts.

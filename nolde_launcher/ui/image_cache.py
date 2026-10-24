@@ -34,6 +34,7 @@ class ImageCache(QObject):
         self._disk_limit = 500 * 1024 * 1024
         self._enabled = True
         self._failed: set[str] = set()
+        self._allowed: set[str] = set()
         self._pending: set[str] = set()
         self._lock = threading.Lock()
 
@@ -109,8 +110,16 @@ class ImageCache(QObject):
     def _path_for(self, url: str) -> Path:
         return self._dir / (hashlib.sha256(url.encode()).hexdigest() + ".img")
 
+    def allow_url(self, url: str) -> None:
+        """Permit one artwork address that the user entered (an https image for a custom app)."""
+        if url and urlparse(url).scheme == "https":
+            self._allowed.add(url)
+
+    def _url_allowed(self, url: str) -> bool:
+        return is_allowed_image_url(url) or url in self._allowed
+
     def _fetch_async(self, url: str) -> None:
-        if not is_allowed_image_url(url):
+        if not self._url_allowed(url):
             self._failed.add(url)
             return
         with self._lock:
@@ -126,7 +135,7 @@ class ImageCache(QObject):
                               headers={"User-Agent": "NoldeLauncher/0.1"}) as resp:
                 if resp.status_code != 200 or not resp.headers.get("Content-Type", "").startswith("image/"):
                     raise ValueError("unexpected response")
-                if not is_allowed_image_url(resp.url):
+                if not (is_allowed_image_url(resp.url) or (url in self._allowed and urlparse(resp.url).scheme == "https")):
                     raise ValueError("redirected to a disallowed host")
                 data = bytearray()
                 for chunk in resp.iter_content(64 * 1024):

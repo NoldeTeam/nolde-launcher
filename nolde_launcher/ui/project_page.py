@@ -248,6 +248,8 @@ class ProjectPage(QWidget):
                                        _link_list([(u, u) for u in sources], strip_scheme=True)))
         self.left.addStretch(1)
 
+        if project.custom:
+            self.right.addWidget(_panel(t("custom.section"), self._custom_buttons(project.id)))
         self.right.addWidget(_panel(t("project.info"), _info_rows(project)))
         links = [(t("detail.official_page"), project.official_url),
                  (t("detail.repository"), project.repository_url),
@@ -289,7 +291,12 @@ class ProjectPage(QWidget):
             return
         self._availability = availability
         primary = self.hero.primary
-        if availability.action is PrimaryAction.INSTALL:
+        if availability.action is PrimaryAction.MANUAL:
+            self.hero.availability.setText(self._reason(availability))
+            primary.setText(t("custom.register"))
+            primary.setObjectName("Primary")
+            primary.setEnabled(True)
+        elif availability.action is PrimaryAction.INSTALL:
             build = availability.build
             self.hero.availability.setText(
                 f"{t('detail.release_build')}: {build.asset.name}   ·   "
@@ -328,6 +335,21 @@ class ProjectPage(QWidget):
         logo = self._images.pixmap(project.logo_url) if project.logo_url else None
         self.hero.set_art(cover, logo)
 
+    def _custom_buttons(self, project_id: str) -> QWidget:
+        host = QWidget()
+        host.setObjectName("Transparent")
+        row = QHBoxLayout(host)
+        row.setContentsMargins(0, 0, 0, 0)
+        edit = QPushButton(t("custom.edit"))
+        edit.clicked.connect(lambda: self._actions.edit_custom_app(project_id))
+        remove = QPushButton(t("custom.remove"))
+        remove.setObjectName("Danger")
+        remove.clicked.connect(lambda: self._actions.remove_custom_app(project_id))
+        row.addWidget(edit)
+        row.addWidget(remove)
+        row.addStretch(1)
+        return host
+
     def refresh_art(self) -> None:
         """Re-read artwork after the image settings changed (loading, memory limit)."""
         if self._project is not None:
@@ -356,6 +378,9 @@ class ProjectPage(QWidget):
             self._actions.play(self._project.id)
             return
         if self._availability is None:
+            return
+        if self._availability.action is PrimaryAction.MANUAL:
+            self._actions.register_manual(self._project)
             return
         if self._availability.action is PrimaryAction.OPEN_PAGE:
             QDesktopServices.openUrl(QUrl(self._availability.page_url))

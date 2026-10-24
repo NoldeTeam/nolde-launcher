@@ -16,7 +16,9 @@ from ..localization.i18n import t
 from ..models.project import CatalogProject
 from ..services.download_manager import DownloadManager, DownloadStatus, DownloadTask
 from ..services.install_manager import InstallError, install_archive
+from ..services.custom_install import finish_custom_install
 from ..services.install_naming import download_file_name, folder_name_for
+from ..services.release_service import GitHubReleaseProvider
 from ..services.library_service import InstallRecord
 from ..services.release_service import ResolvedBuild
 from .workers import run_async
@@ -35,6 +37,7 @@ class InstallController(QObject):
         self._services = services
         self._choose_executable = choose_executable  # callable(list[str]) -> str | None
         self.downloads = DownloadManager(parent=self)
+        self._provider = GitHubReleaseProvider()
         self._pending: dict[int, tuple[CatalogProject, ResolvedBuild, bool]] = {}
         self._requests: dict[str, tuple[CatalogProject, ResolvedBuild]] = {}
         self.downloads.task_changed.connect(self._on_task_changed)
@@ -89,7 +92,7 @@ class InstallController(QObject):
             del self._pending[task.task_id]
             self.status_changed.emit(project.id, t("install.extracting"))
             run_async(self._install_job, project, build, task.destination, updating,
-                      on_ok=lambda result: self._on_installed(project, build, result, updating),
+                      on_ok=lambda payload: self._on_installed(project, build, payload[0], updating, payload[1]),
                       on_err=lambda exc: self._on_error(project, build, exc),
                       parent=self)
         elif task.status is DownloadStatus.CANCELLED:
@@ -103,10 +106,16 @@ class InstallController(QObject):
     def _install_job(self, project: CatalogProject, build: ResolvedBuild, archive: Path, updating: bool):
         folder = folder_name_for(project)
         # The archive's hash was verified during download when GitHub published one.
-        return install_archive(archive, self._services.settings.library_dir, folder,
-                               overwrite=updating)
+        result = install_archive(archive, self._services.settings.library_dir, folder,
+                                 overwrite=updating)
+        problems: list[str] = []
+        if project.custom and project.management == "managed":
+            problems = finish_custom_install(result.install_dir, project, self._provider,
+                                             self._services.settings.download_dir)
+        return result, problems
 
-    def _on_installed(self, project: CatalogProject, build: ResolvedBuild, result, updating: bool) -> None:
+    def _on_installed(self, project: CatalogProject, build: ResolvedBuild, result, updating: bool,
+                      problems: list | None = None) -> None:
         try:
             self._archive_for(project, build).unlink(missing_ok=True)
         except OSError:
@@ -134,6 +143,10 @@ class InstallController(QObject):
         log.info("%s %s version %s (state=%s)", "updated" if updating else "installed",
                  project.id, build.release.tag, state)
         self.library_changed.emit()
+        for problem in problems or []:
+            log.warning("custom app step: %s", problem)
+        if problems:
+            message = message + "\n" + t("custom.steps_problems", count=len(problems))
         self.finished_ok.emit(project.id, message)
 
     def _pick_executable(self, executables, previous) -> tuple[str, str]:

@@ -18,7 +18,8 @@ from nolde_launcher.storage.paths import logs_dir
 from nolde_launcher.ui.fonts import load_fonts
 from nolde_launcher.ui.loading_screen import LoadingScreen, StartupResult
 from nolde_launcher.ui.main_window import MainWindow
-from nolde_launcher.ui.theme import APP_ICON_PATH, STYLESHEET
+from nolde_launcher.ui.palette import apply_palette
+from nolde_launcher.ui.theme import APP_ICON_PATH, build_stylesheet
 from nolde_launcher.ui.workers import wait_for_workers
 
 
@@ -39,11 +40,16 @@ def main() -> int:
     app.setApplicationName(APP_NAME)
     load_fonts()  # must run after QApplication exists and before styling
     app.setFont(QFont("Inter", 10))
-    app.setStyleSheet(STYLESHEET)
+    app.setStyleSheet(build_stylesheet())
     app.setWindowIcon(QIcon(str(APP_ICON_PATH)))
     set_locale("en")
 
     services = build_services()
+    try:  # the user's colours, if any, before the first window is shown
+        apply_palette(services.settings.settings.theme_primary, services.settings.settings.theme_secondary)
+    except ValueError:
+        apply_palette()
+    app.setStyleSheet(build_stylesheet())
     loading = LoadingScreen(services)
     window: dict[str, MainWindow] = {}
 

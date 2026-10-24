@@ -220,9 +220,7 @@ def test_window_is_frameless_with_app_title_bar(window):
     from PySide6.QtCore import Qt
     assert window.windowFlags() & Qt.WindowType.FramelessWindowHint
     assert window.titlebar.objectName() == "TitleBar"
-    assert window.titlebar.title.text().startswith("Nolde Launcher")
-    from nolde_launcher.app.version import VERSION_LABEL
-    assert VERSION_LABEL in window.titlebar.title.text()
+    assert window.titlebar.title.text() == ""  # only the window buttons remain
 
 
 def test_resize_grips_cover_all_edges_and_hide_when_maximized(window, qapp):

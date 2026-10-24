@@ -12,6 +12,7 @@ Rules enforced here:
 
 from __future__ import annotations
 
+import fnmatch
 import re
 import time
 from dataclasses import dataclass, field
@@ -142,6 +143,17 @@ def _parse_release(raw: dict[str, Any]) -> ReleaseInfo:
     )
 
 
+def asset_matches(pattern: str, asset_name: str) -> bool:
+    """Case-insensitive glob on a release file name. Only .zip files can be installed."""
+    name = asset_name.lower()
+    return name.endswith(".zip") and fnmatch.fnmatch(name, pattern.lower())
+
+
+def choose_by_pattern(release: ReleaseInfo, pattern: str) -> ReleaseAsset | None:
+    matches = sorted((a for a in release.assets if asset_matches(pattern, a.name)), key=lambda a: a.name)
+    return matches[0] if matches else None
+
+
 def choose_windows_zip(release: ReleaseInfo) -> ReleaseAsset | None:
     candidates = [a for a in release.assets if a.is_zip and a.os_hint == "windows"]
     if not candidates:
@@ -176,7 +188,7 @@ class GitHubReleaseProvider:
     def supports(self, repository_url: str) -> bool:
         return parse_github_repo(repository_url) is not None
 
-    def resolve(self, repository_url: str) -> ResolvedBuild:
+    def resolve(self, repository_url: str, asset_pattern: str = "") -> ResolvedBuild:
         repo = parse_github_repo(repository_url)
         if repo is None:
             raise ReleaseError("no_repo", "no supported GitHub repository is listed")
@@ -189,7 +201,8 @@ class GitHubReleaseProvider:
         stable = [r for r in releases if not r.prerelease]
         ordered = stable + [r for r in releases if r.prerelease]
         for release in ordered:
-            asset = choose_windows_zip(release)
+            # A user's filter decides the file itself; otherwise the Windows detection applies.
+            asset = choose_by_pattern(release, asset_pattern) if asset_pattern else choose_windows_zip(release)
             if asset is not None:
                 return ResolvedBuild(self.name, slug, release, asset)
 
