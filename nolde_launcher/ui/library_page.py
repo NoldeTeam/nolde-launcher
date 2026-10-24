@@ -6,10 +6,11 @@ from pathlib import Path
 
 from PySide6.QtCore import QSize, QUrl, Qt, Signal
 from PySide6.QtGui import QAction, QDesktopServices
-from PySide6.QtWidgets import (QComboBox, QFileDialog, QHBoxLayout, QLabel, QMenu, QMessageBox,
+from PySide6.QtWidgets import (QComboBox, QFileDialog, QFrame, QHBoxLayout, QLabel, QMenu,
                                QPushButton, QToolButton, QVBoxLayout, QWidget)
 
 from ..localization.i18n import t
+from .dialogs import ThemedMessage as QMessageBox
 from ..services.install_manager import InstallError, resolve_inside
 from .card_grid import CardGrid
 from .format import duration, time_ago
@@ -21,6 +22,8 @@ SORTS = ("recent", "name", "installed", "playtime")
 
 class LibraryPage(QWidget):
     update_requested = Signal(str)  # project id: the user chose "Update" in the card menu
+    add_requested = Signal()        # "Add my own app"
+    explore_requested = Signal()    # go to Discover
 
     def __init__(self, services, actions, project_lookup, parent=None) -> None:
         super().__init__(parent)
@@ -44,6 +47,9 @@ class LibraryPage(QWidget):
         titles.addWidget(self.count_label)
         header.addLayout(titles, 1)
 
+        self.add_btn = QPushButton(t("custom.add_button"))
+        self.add_btn.clicked.connect(self.add_requested.emit)
+        header.addWidget(self.add_btn)
         self.check_btn = QPushButton(icon("retry", "#e9edf5", 16), t("library.check_updates"))
         self.check_btn.clicked.connect(self._actions.check_updates)
         header.addWidget(self.check_btn)
@@ -60,8 +66,39 @@ class LibraryPage(QWidget):
         root.addLayout(header)
 
         self.grid = CardGrid(t("library.empty"), card_width(self._display().card_size))
-        root.addWidget(self.grid, 1)
-        root.addWidget(self.grid.empty)
+        root.addWidget(self.grid, 1)  # the grid's own empty label is not used: the panel below replaces it
+
+        # Shown when the library has nothing in it: two ways to fill it.
+        self.empty_panel = QFrame()
+        self.empty_panel.setObjectName("Panel")
+        empty = QVBoxLayout(self.empty_panel)
+        empty.setContentsMargins(40, 36, 40, 36)
+        empty.setSpacing(18)
+        message = QLabel(t("library.empty_message"))
+        message.setObjectName("SectionTitle")
+        message.setWordWrap(True)
+        message.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        hint = QLabel(t("library.empty_hint"))
+        hint.setObjectName("Muted")
+        hint.setWordWrap(True)
+        hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        buttons = QHBoxLayout()
+        buttons.addStretch(1)
+        add = QPushButton(t("custom.add_button"))
+        add.setObjectName("Primary")
+        add.clicked.connect(self.add_requested.emit)
+        explore = QPushButton(t("library.explore"))
+        explore.clicked.connect(self.explore_requested.emit)
+        buttons.addWidget(add)
+        buttons.addWidget(explore)
+        buttons.addStretch(1)
+        empty.addStretch(1)
+        empty.addWidget(message)
+        empty.addWidget(hint)
+        empty.addLayout(buttons)
+        empty.addStretch(1)
+        self.empty_panel.hide()
+        root.addWidget(self.empty_panel, 1)
 
     def _display(self):
         return self._services.settings.settings
@@ -87,6 +124,7 @@ class LibraryPage(QWidget):
         self.count_label.setText(t("library.count", count=len(records)))
         self.grid.set_entries([r.project_id for r in records], self._make_card,
                               t("library.empty"))
+        self.empty_panel.setVisible(not records)
         self.grid.for_each(lambda pid, card: self._update_card(card, self._records[pid]))
 
     def rebuild(self) -> None:

@@ -38,7 +38,7 @@ _CHOICES = {
 _BOOLS = {"show_card_details", "load_images", "refresh_catalog_on_start", "check_updates_on_start",
           "notifications", "check_launcher_updates", "welcome_seen"}
 _PATHS = {"library_dir", "download_dir"}
-_COLOURS = {"theme_primary", "theme_secondary"}
+_COLOURS = {"theme_primary", "theme_secondary", "theme_text"}
 
 
 def default_motion_level() -> str:
@@ -66,6 +66,7 @@ class Settings:
     welcome_seen: bool = False              # the Early Access welcome has been shown once
     theme_primary: str = ""                 # background colour (#RRGGBB); empty = built-in
     theme_secondary: str = ""               # button and line colour (#RRGGBB); empty = built-in
+    theme_text: str = ""                    # text colour (#RRGGBB); empty = picked for contrast
 
     @classmethod
     def defaults(cls) -> "Settings":

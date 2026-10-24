@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (QFrame, QGraphicsDropShadowEffect, QGraphicsOpaci
                                QVBoxLayout, QWidget)
 
 from . import icons, motion
+from .theme import COLORS
 
 COVER_W, COVER_H = 240, 135
 RADIUS = 10
@@ -198,7 +199,8 @@ class CoverFrame(QFrame):
     def add_overlay(self, kind: str, tooltip: str) -> QPushButton:
         button = QPushButton(self)
         button.setObjectName("OverlayPlay" if kind == "play" else "OverlayInstall")
-        button.setIcon(icons.icon("play_fill" if kind == "play" else "install_fill", "#ffffff", 18))
+        icon_colour = "#ffffff" if kind == "play" else COLORS["on_accent"]
+        button.setIcon(icons.icon("play_fill" if kind == "play" else "install_fill", icon_colour, 18))
         button.setIconSize(QSize(18, 18))
         button.setFixedSize(40, 40)
         button.setCursor(Qt.CursorShape.PointingHandCursor)

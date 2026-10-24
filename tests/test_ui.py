@@ -88,10 +88,10 @@ def test_installed_only_filter_limits_discover(window):
 
 
 def test_play_marks_last_played_and_updates_continue(window, monkeypatch):
-    from PySide6.QtWidgets import QMessageBox
+    from nolde_launcher.ui.dialogs import ThemedMessage
     # First launch asks for confirmation; answer "Yes" so the modal does not block the test.
-    monkeypatch.setattr(QMessageBox, "question",
-                        staticmethod(lambda *a, **k: QMessageBox.StandardButton.Yes))
+    monkeypatch.setattr(ThemedMessage, "question",
+                        staticmethod(lambda *a, **k: ThemedMessage.StandardButton.Yes))
     launched = {}
 
     class FakeProc:

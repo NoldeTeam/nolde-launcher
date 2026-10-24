@@ -34,7 +34,16 @@ def _setup_logging() -> None:
     )
 
 
+def _set_windows_app_identity() -> None:
+    """Give the process its own identity on Windows, so the taskbar shows the launcher's icon
+    and does not group it with python.exe when the launcher runs from source."""
+    if sys.platform == "win32":
+        import ctypes
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("NoldeTeam.NoldeLauncher")
+
+
 def main() -> int:
+    _set_windows_app_identity()
     _setup_logging()
     app = QApplication(sys.argv)
     app.setApplicationName(APP_NAME)
@@ -46,7 +55,8 @@ def main() -> int:
 
     services = build_services()
     try:  # the user's colours, if any, before the first window is shown
-        apply_palette(services.settings.settings.theme_primary, services.settings.settings.theme_secondary)
+        apply_palette(services.settings.settings.theme_primary, services.settings.settings.theme_secondary,
+                      services.settings.settings.theme_text)
     except ValueError:
         apply_palette()
     app.setStyleSheet(build_stylesheet())

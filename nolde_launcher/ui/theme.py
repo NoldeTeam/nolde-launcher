@@ -28,6 +28,7 @@ COLORS = {
     "muted": "#8a93a6",
     "subtle": "#5c6578",
     "accent": "#2f6fed",
+    "on_accent": "#ffffff",  # text and icons drawn on accent-coloured buttons (computed by palette)
     "accent_hover": "#4383ff",
     "accent_pressed": "#2558c7",
     "play": "#2fa572",
@@ -107,7 +108,7 @@ def _base_stylesheet() -> str:
         font-family: "{DISPLAY_FONT}"; font-size: 28px; font-weight: 700;
     }}
     #OverlayPlay, #OverlayInstall {{
-        border: none; border-radius: 20px; color: white;
+        border: none; border-radius: 20px; color: {_C['on_accent']};
     }}
     #OverlayPlay {{ background: {_C['play']}; }}
     #OverlayPlay:hover {{ background: {_C['play_hover']}; }}
@@ -149,7 +150,7 @@ def _base_stylesheet() -> str:
     QPushButton:pressed {{ background: {_C['card']}; }}
     QPushButton:disabled {{ color: {_C['subtle']}; }}
     QPushButton#Primary {{
-        background: {_C['accent']}; border: 1px solid {_C['accent']}; color: white; font-weight: 600;
+        background: {_C['accent']}; border: 1px solid {_C['accent']}; color: {_C['on_accent']}; font-weight: 600;
         padding: 10px 22px; font-size: 14px;
     }}
     QPushButton#Primary:hover {{ background: {_C['accent_hover']}; border-color: {_C['accent_hover']}; }}

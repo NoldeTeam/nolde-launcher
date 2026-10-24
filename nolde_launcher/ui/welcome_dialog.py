@@ -5,14 +5,15 @@ from __future__ import annotations
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtCore import QUrl
-from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton
+from .dialogs import ThemedDialog
 
 from ..app.version import APP_NAME, REPO_URL, VERSION_LABEL
 from ..localization.i18n import t
 from .icons import icon
 
 
-class WelcomeDialog(QDialog):
+class WelcomeDialog(ThemedDialog):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle(t("welcome.title"))
@@ -20,7 +21,7 @@ class WelcomeDialog(QDialog):
         self.setMinimumWidth(520)
         self.setObjectName("WelcomeDialog")
 
-        layout = QVBoxLayout(self)
+        layout = self.body_layout
         layout.setContentsMargins(32, 28, 32, 24)
         layout.setSpacing(14)
 

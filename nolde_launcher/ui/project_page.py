@@ -8,10 +8,11 @@ from __future__ import annotations
 
 from PySide6.QtCore import QSize, QUrl, Qt, Signal
 from PySide6.QtGui import QColor, QDesktopServices, QLinearGradient, QPainter, QPixmap
-from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QMessageBox, QPushButton, QScrollArea,
+from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QPushButton, QScrollArea,
                                QSizePolicy, QVBoxLayout, QWidget)
 
 from ..localization.i18n import t
+from .dialogs import ThemedMessage as QMessageBox
 from ..models.project import CatalogProject
 from ..services.source_resolver import Availability, PrimaryAction
 from .icons import icon

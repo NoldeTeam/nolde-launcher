@@ -10,7 +10,6 @@ from __future__ import annotations
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QToolButton, QWidget
 
-from ..app.version import APP_NAME
 from ..localization.i18n import t
 from .icons import icon
 
@@ -37,7 +36,7 @@ class WindowButton(QToolButton):
 
 
 class TitleBar(QWidget):
-    def __init__(self, window, parent=None) -> None:
+    def __init__(self, window, parent=None, compact: bool = False, on_close=None) -> None:
         super().__init__(parent)
         self._window = window
         self.setObjectName("TitleBar")
@@ -45,17 +44,21 @@ class TitleBar(QWidget):
         row = QHBoxLayout(self)
         row.setContentsMargins(16, 0, 0, 0)
         row.setSpacing(0)
-        self.title = QLabel(APP_NAME)
+        self.title = QLabel("")  # window buttons only; no title text in the bar
         self.title.setObjectName("TitleText")
         row.addWidget(self.title)
         row.addStretch(1)
 
+        self.close_btn = WindowButton("x", t("titlebar.close"), close=True)
+        self.close_btn.clicked.connect(on_close or window.close)
+        if compact:  # dialogs: a close button only
+            self.min_btn = self.max_btn = None
+            row.addWidget(self.close_btn)
+            return
         self.min_btn = WindowButton("minimize", t("titlebar.minimize"))
         self.max_btn = WindowButton("maximize", t("titlebar.maximize"))
-        self.close_btn = WindowButton("x", t("titlebar.close"), close=True)
         self.min_btn.clicked.connect(window.showMinimized)
         self.max_btn.clicked.connect(self.toggle_maximize)
-        self.close_btn.clicked.connect(window.close)
         for button in (self.min_btn, self.max_btn, self.close_btn):
             row.addWidget(button)
         self.sync_state()
@@ -68,7 +71,8 @@ class TitleBar(QWidget):
         self.sync_state()
 
     def sync_state(self) -> None:
-        self.max_btn.set_icon_name("restore" if self._window.isMaximized() else "maximize")
+        if self.max_btn is not None:
+            self.max_btn.set_icon_name("restore" if self._window.isMaximized() else "maximize")
 
     def mousePressEvent(self, event) -> None:
         if event.button() == Qt.MouseButton.LeftButton:

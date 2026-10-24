@@ -316,5 +316,9 @@
   "custom.mods_path": "Mods folder (inside the game folder)",
   "custom.mod_sources": "Mod sources (GitHub, one per line)",
   "custom.form_hint": "Managed apps need a public GitHub repository and install its release. Manual apps have no download: you copy the files yourself.",
-  "custom.save": "Save"
+  "custom.save": "Save",
+  "settings.theme_text": "Text colour",
+  "library.empty_message": "You don't have any project added yet.",
+  "library.empty_hint": "Install a project from the catalog, or add a project of your own.",
+  "library.explore": "Explore the catalog"
 }

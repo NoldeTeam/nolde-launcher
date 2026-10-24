@@ -109,6 +109,7 @@ class SettingsPage(QWidget):
         row = QHBoxLayout()
         row.addWidget(self._colour_button("theme_primary", t("settings.theme_primary")))
         row.addWidget(self._colour_button("theme_secondary", t("settings.theme_secondary")))
+        row.addWidget(self._colour_button("theme_text", t("settings.theme_text")))
         reset = QPushButton(t("settings.theme_reset"))
         reset.clicked.connect(self._reset_theme)
         row.addWidget(reset)
@@ -124,17 +125,14 @@ class SettingsPage(QWidget):
         return button
 
     def _paint_swatch(self, button: QPushButton, key: str) -> None:
-        from ..ui.palette import DEFAULT_PRIMARY, DEFAULT_SECONDARY
         value = getattr(self._services.settings.settings, key)
-        shown = value or (DEFAULT_PRIMARY if key == "theme_primary" else DEFAULT_SECONDARY)
+        shown = value or self._default_colour(key)
         button.setStyleSheet(f"QPushButton {{ border-left: 22px solid {shown}; padding-left: 10px; }}")
 
     def _pick_colour(self, key: str, button: QPushButton) -> None:
         from PySide6.QtGui import QColor
         from PySide6.QtWidgets import QColorDialog
-        from ..ui.palette import DEFAULT_PRIMARY, DEFAULT_SECONDARY
-        current = getattr(self._services.settings.settings, key) or (
-            DEFAULT_PRIMARY if key == "theme_primary" else DEFAULT_SECONDARY)
+        current = getattr(self._services.settings.settings, key) or self._default_colour(key)
         colour = QColorDialog.getColor(QColor(current), self, t("settings.theme_pick"))
         if not colour.isValid():
             return
@@ -142,16 +140,23 @@ class SettingsPage(QWidget):
         self._paint_swatch(button, key)
         self._actions.apply_theme()
 
+    def _default_colour(self, key: str) -> str:
+        from ..ui.palette import DEFAULT_PRIMARY, DEFAULT_SECONDARY
+        from ..ui.theme import COLORS
+        return {"theme_primary": DEFAULT_PRIMARY, "theme_secondary": DEFAULT_SECONDARY,
+                "theme_text": COLORS["text"]}[key]
+
     def _reset_theme(self) -> None:
-        self._services.settings.update(theme_primary="", theme_secondary="")
+        self._services.settings.update(theme_primary="", theme_secondary="", theme_text="")
         self._actions.apply_theme()
         self.rebuild_theme_buttons()
 
     def rebuild_theme_buttons(self) -> None:
+        names = {t("settings.theme_primary"): "theme_primary", t("settings.theme_secondary"): "theme_secondary",
+                 t("settings.theme_text"): "theme_text"}
         for button in self.findChildren(QPushButton):
-            if button.text() in (t("settings.theme_primary"), t("settings.theme_secondary")):
-                key = "theme_primary" if button.text() == t("settings.theme_primary") else "theme_secondary"
-                self._paint_swatch(button, key)
+            if button.text() in names:
+                self._paint_swatch(button, names[button.text()])
 
     def _motion_panel(self) -> QFrame:
         panel, layout = _panel()

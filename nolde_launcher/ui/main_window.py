@@ -13,8 +13,7 @@ from pathlib import Path
 
 from PySide6.QtCore import QEasingCurve, QEvent, QPoint, QPropertyAnimation, QRect, QSize, QTimer, QUrl, Qt
 from PySide6.QtGui import QDesktopServices, QIcon, QKeySequence, QPixmap, QShortcut
-from PySide6.QtWidgets import (QApplication, QFrame, QHBoxLayout, QInputDialog, QLabel, QMainWindow,
-                               QMessageBox, QPushButton, QStackedWidget, QToolButton, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QApplication, QFrame, QHBoxLayout, QInputDialog, QLabel, QMainWindow, QPushButton, QStackedWidget, QToolButton, QVBoxLayout, QWidget)
 
 import requests
 from PySide6.QtCore import qVersion
@@ -30,6 +29,7 @@ from ..services.integrity import verify_install as check_install
 from .notifier import Notifier
 from .theme import APP_ICON_PATH
 from ..localization.i18n import t
+from .dialogs import ThemedMessage as QMessageBox
 from ..services.catalog_service import CatalogSnapshot
 from ..services.launch_manager import LaunchError, LaunchRequest
 from ..services.library_service import InstallRecord, LibraryService, make_library_store
@@ -120,6 +120,8 @@ class MainWindow(QMainWindow):
         self.library_page = LibraryPage(services, self, self._project_for)
         self.library_page.images = self.images
         self.library_page.update_requested.connect(self.update_game)
+        self.library_page.add_requested.connect(self.open_add_app)
+        self.library_page.explore_requested.connect(lambda: self.show_page(PAGE_DISCOVER))
         self._updates: dict[str, str] = {}
         self._setup_shortcuts()
         self.discover = DiscoverPage(services)
@@ -164,7 +166,7 @@ class MainWindow(QMainWindow):
         from .theme import build_stylesheet
         s = self.services.settings.settings
         try:
-            apply_palette(s.theme_primary, s.theme_secondary)
+            apply_palette(s.theme_primary, s.theme_secondary, s.theme_text)
         except ValueError:
             apply_palette()
         QApplication.instance().setStyleSheet(build_stylesheet())

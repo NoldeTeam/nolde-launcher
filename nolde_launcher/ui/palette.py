@@ -42,12 +42,16 @@ def luminance(color: str) -> float:
     return 0.2126 * r + 0.7152 * g + 0.0722 * b
 
 
-def derive(primary: str, secondary: str) -> dict[str, str]:
-    """All theme colours, from the two the user chose."""
+def derive(primary: str, secondary: str, text: str = "") -> dict[str, str]:
+    """All theme colours, from the colours the user chose. `text` is optional: when it is empty the
+    text colour is picked for good contrast on the primary colour."""
     dark = luminance(primary) < 0.5
-    text = "#e9edf5" if dark else "#1b1f27"
+    if not text:
+        text = "#e9edf5" if dark else "#1b1f27"
     lift = "#ffffff" if dark else "#000000"  # surfaces step lighter on dark themes, darker on light
+    on_accent = "#ffffff" if luminance(secondary) < 0.6 else "#14171f"
     return {
+        "on_accent": on_accent,
         "bg": primary,
         "sidebar": primary,
         "panel": mix(primary, lift, 0.035),
@@ -63,16 +67,16 @@ def derive(primary: str, secondary: str) -> dict[str, str]:
     }
 
 
-def apply_palette(primary: str = "", secondary: str = "") -> None:
-    """Use the user's colours, or the built-in ones when both are empty. Raises ValueError when a
+def apply_palette(primary: str = "", secondary: str = "", text: str = "") -> None:
+    """Use the user's colours, or the built-in ones when all are empty. Raises ValueError when a
     colour is not a #RRGGBB value."""
-    if not primary and not secondary:
+    if not primary and not secondary and not text:
         COLORS.update(DEFAULT)
         return
     primary = primary or DEFAULT_PRIMARY
     secondary = secondary or DEFAULT_SECONDARY
-    if not (valid_hex(primary) and valid_hex(secondary)):
+    if not (valid_hex(primary) and valid_hex(secondary) and (not text or valid_hex(text))):
         raise ValueError("colours must be #RRGGBB")
-    COLORS.update(derive(primary, secondary))
+    COLORS.update(derive(primary, secondary, text))
     for key in FIXED_KEYS:
         COLORS[key] = DEFAULT[key]

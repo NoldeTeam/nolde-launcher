@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
-from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QFileDialog, QFormLayout, QHBoxLayout,
-                               QLabel, QLineEdit, QMessageBox, QPlainTextEdit, QPushButton, QVBoxLayout)
+from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QFormLayout, QHBoxLayout,
+                               QLabel, QLineEdit, QPlainTextEdit, QPushButton, QVBoxLayout)
 
 from ..localization.i18n import t
+from .dialogs import ThemedMessage as QMessageBox
 from ..services.custom_apps import CustomAppError, CustomAppSpec, validate
+from .dialogs import ThemedDialog
 
 
-class CustomAppDialog(QDialog):
+class CustomAppDialog(ThemedDialog):
     def __init__(self, spec: CustomAppSpec | None = None, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle(t("custom.dialog_title_edit" if spec and spec.id else "custom.dialog_title_add"))
@@ -81,7 +83,7 @@ class CustomAppDialog(QDialog):
         buttons.addWidget(cancel)
         buttons.addWidget(save)
 
-        layout = QVBoxLayout(self)
+        layout = self.body_layout
         layout.setContentsMargins(24, 20, 24, 18)
         layout.setSpacing(12)
         layout.addLayout(form)
