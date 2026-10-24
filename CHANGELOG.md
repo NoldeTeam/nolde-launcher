@@ -10,7 +10,7 @@
 - Sidebar: the GitHub mark links to the repository; the launcher's icon links to the website.
 - The title bar shows only the window buttons.
 
-## 0.3.1 - Early Access
+## 0.3.1 - Pre Early Access
 - Bugs Fixes
 - Add nolde.ico
 
