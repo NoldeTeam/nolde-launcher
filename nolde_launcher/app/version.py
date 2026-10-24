@@ -1,6 +1,6 @@
 """Application version. Keep in sync with packaging metadata."""
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 APP_NAME = "Nolde Launcher"
 NOLDE_WEBSITE = "https://nolde.pages.dev/"
 NOLDE_CATALOG_URL = "https://nolde.pages.dev/data/projects.json"

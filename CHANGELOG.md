@@ -1,6 +1,10 @@
 # Changelog
 
-## 0.3.0 — Early Access
+## 0.3.1 - Early Access
+- Bugs Fixes
+- Add nolde.ico
+
+## 0.3.0 — Pre Early Access
 - First public Early Access release.
 - Automatic launcher updates from GitHub releases. The installer's SHA-256 is verified before
   anything is installed, and the launcher asks before it restarts.
