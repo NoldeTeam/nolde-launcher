@@ -65,7 +65,7 @@ class LibraryPage(QWidget):
         header.addWidget(self.sort_box)
         root.addLayout(header)
 
-        self.grid = CardGrid(t("library.empty"), card_width(self._display().card_size))
+        self.grid = CardGrid(t("library.empty"), card_width(self._display().card_size), show_empty=False)
         root.addWidget(self.grid, 1)  # the grid's own empty label is not used: the panel below replaces it
 
         # Shown when the library has nothing in it: two ways to fill it.

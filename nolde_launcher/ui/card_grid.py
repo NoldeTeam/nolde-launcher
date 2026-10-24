@@ -23,8 +23,10 @@ POOL_MAX = 48    # cards kept for re-use; more than a screen and a half at any s
 
 
 class CardGrid(QScrollArea):
-    def __init__(self, empty_text: str = "", card_width: int = COVER_W, parent=None) -> None:
+    def __init__(self, empty_text: str = "", card_width: int = COVER_W, parent=None,
+                 show_empty: bool = True) -> None:
         super().__init__(parent)
+        self._show_empty = show_empty
         self.setWidgetResizable(False)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self._keys: list[Hashable] = []
@@ -46,7 +48,8 @@ class CardGrid(QScrollArea):
         self._idle.setInterval(180)
         self._idle.timeout.connect(lambda: motion.set_scrolling(False))
 
-        self.empty = QLabel(empty_text)
+        # Always has a parent: a parentless label becomes its own window the moment it is shown.
+        self.empty = QLabel(empty_text, self)
         self.empty.setObjectName("Empty")
         self.empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.empty.setWordWrap(True)
@@ -96,7 +99,7 @@ class CardGrid(QScrollArea):
         for key in [k for k in self._cards if k not in wanted]:
             self._release(key)
         self._relayout()
-        self.empty.setVisible(not self._keys)
+        self.empty.setVisible(self._show_empty and not self._keys)
         self.setVisible(bool(self._keys))
 
     def for_each(self, fn: Callable[[Hashable, QWidget], None]) -> None:

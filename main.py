@@ -34,6 +34,13 @@ def _setup_logging() -> None:
     )
 
 
+def _log_uncaught(exc_type, exc, tb) -> None:
+    """Write any unhandled exception, with its full traceback, to the launcher log before the
+    default handler runs. Errors raised inside Qt slots reach this hook too."""
+    logging.getLogger("nolde.crash").error("Unhandled exception", exc_info=(exc_type, exc, tb))
+    sys.__excepthook__(exc_type, exc, tb)
+
+
 def _set_windows_app_identity() -> None:
     """Give the process its own identity on Windows, so the taskbar shows the launcher's icon
     and does not group it with python.exe when the launcher runs from source."""
@@ -45,6 +52,7 @@ def _set_windows_app_identity() -> None:
 def main() -> int:
     _set_windows_app_identity()
     _setup_logging()
+    sys.excepthook = _log_uncaught
     app = QApplication(sys.argv)
     app.setApplicationName(APP_NAME)
     load_fonts()  # must run after QApplication exists and before styling

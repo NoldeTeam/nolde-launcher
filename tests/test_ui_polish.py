@@ -126,3 +126,21 @@ def test_every_installer_shortcut_uses_the_launcher_icon():
     for line in lines:
         assert "IconFilename" in line and "nolde.ico" in line
     assert "nolde.ico" in INSTALLER.read_text(encoding="utf-8").split("[Icons]")[0]  # copied with the program
+
+
+# ----- regression: a parentless label appeared as its own empty popup -----
+
+def test_no_parentless_widget_becomes_a_visible_window_at_startup(qapp, tmp_path, monkeypatch):
+    monkeypatch.setenv("NOLDE_DATA_DIR", str(tmp_path / "d"))
+    import time
+    from PySide6.QtWidgets import QLabel
+    from nolde_launcher.app import context
+    from nolde_launcher.services.catalog_service import CatalogSnapshot
+    from nolde_launcher.ui.main_window import MainWindow
+    win = MainWindow(context.build_services(), CatalogSnapshot((), "network", time.time(), 0), "")
+    win.show()
+    for _ in range(10):
+        qapp.processEvents()
+    stray = [w for w in qapp.allWidgets() if isinstance(w, QLabel) and w.isWindow() and w.isVisible()]
+    assert stray == [], [w.text() for w in stray]
+    win.close()
