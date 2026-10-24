@@ -55,6 +55,9 @@ python -m pytest tests -q
 python -m pyflakes nolde_launcher tests main.py scripts
 ```
 
+The application icon (`nolde_launcher/ui/assets/images/nolde.ico`) is generated from the bundled
+font; regenerate it with `python scripts\make_icon.py`.
+
 Build the installer (needs [Inno Setup 6](https://jrsoftware.org/isinfo.php)):
 
 ```powershell

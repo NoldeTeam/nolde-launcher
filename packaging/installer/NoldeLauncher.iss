@@ -27,6 +27,7 @@ PrivilegesRequiredOverridesAllowed=dialog
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 LicenseFile=..\..\LICENSE
+SetupIconFile=..\..\nolde_launcher\ui\assets\images\nolde.ico
 OutputDir=..\..\dist\installer
 OutputBaseFilename=NoldeLauncher-Setup-{#MyAppVersion}
 Compression=lzma2

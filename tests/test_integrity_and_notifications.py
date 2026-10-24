@@ -125,3 +125,25 @@ def test_license_file_exists_and_is_referenced_by_the_installer():
     text = (root / "LICENSE").read_text(encoding="utf-8")
     assert text.startswith("MIT License") and "NoldeTeam" in text
     assert "LicenseFile=..\\..\\LICENSE" in INSTALLER.read_text(encoding="utf-8")
+
+
+# ----- application icon -----
+
+def test_application_icon_is_a_valid_multi_size_ico():
+    import struct
+    from nolde_launcher.ui.theme import APP_ICON_PATH
+    data = APP_ICON_PATH.read_bytes()
+    reserved, kind, count = struct.unpack("<HHH", data[:6])
+    assert reserved == 0 and kind == 1 and count >= 5
+    sizes = set()
+    for i in range(count):
+        w, _, _, _, _, bpp, size, offset = struct.unpack("<BBBBHHII", data[6 + 16 * i:22 + 16 * i])
+        sizes.add(w or 256)
+        assert data[offset:offset + 8] == b"\x89PNG\r\n\x1a\n"  # PNG frame
+    assert {16, 32, 48, 256} <= sizes
+
+
+def test_installer_and_build_use_the_application_icon():
+    root = Path(__file__).resolve().parents[1]
+    assert "SetupIconFile=" in INSTALLER.read_text(encoding="utf-8")
+    assert "nolde.ico" in (root / "packaging" / "nolde_launcher.spec").read_text(encoding="utf-8")

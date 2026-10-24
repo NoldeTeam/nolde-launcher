@@ -12,7 +12,7 @@ import subprocess
 from pathlib import Path
 
 from PySide6.QtCore import QEasingCurve, QEvent, QPoint, QPropertyAnimation, QRect, QSize, QTimer, QUrl, Qt
-from PySide6.QtGui import QDesktopServices, QKeySequence, QPixmap, QShortcut
+from PySide6.QtGui import QDesktopServices, QIcon, QKeySequence, QPixmap, QShortcut
 from PySide6.QtWidgets import (QApplication, QFrame, QHBoxLayout, QInputDialog, QLabel, QMainWindow,
                                QMessageBox, QPushButton, QStackedWidget, QToolButton, QVBoxLayout, QWidget)
 
@@ -28,6 +28,7 @@ from ..storage.paths import logs_dir
 from ..services.integrity import build_manifest, load_manifest, save_manifest
 from ..services.integrity import verify_install as check_install
 from .notifier import Notifier
+from .theme import APP_ICON_PATH
 from ..localization.i18n import t
 from ..services.catalog_service import CatalogSnapshot
 from ..services.launch_manager import LaunchError, LaunchRequest
@@ -130,7 +131,7 @@ class MainWindow(QMainWindow):
         row.addWidget(self.stack, 1)
 
         self.toast = Toast(central)
-        self.notifier = Notifier(icon("gamepad", "#e9edf5", 32), self,
+        self.notifier = Notifier(QIcon(str(APP_ICON_PATH)), self,
                                  lambda: self.services.settings.settings.notifications, self)
         self.stack.currentChanged.connect(self._on_page_changed)
         self.discover.set_snapshot(startup_snapshot, startup_error)

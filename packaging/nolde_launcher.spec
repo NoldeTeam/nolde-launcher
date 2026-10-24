@@ -25,6 +25,6 @@ exe = EXE(
     name="NoldeLauncher",
     console=False,
     upx=False,
-    icon=None,
+    icon=str(root / "nolde_launcher" / "ui" / "assets" / "images" / "nolde.ico"),
 )
 coll = COLLECT(exe, a.binaries, a.zipfiles, a.datas, name="NoldeLauncher")

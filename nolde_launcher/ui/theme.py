@@ -12,6 +12,7 @@ from pathlib import Path
 ASSETS = Path(__file__).resolve().parent / "assets"
 FONT_DIR = ASSETS / "fonts"
 LOGO_PATH = ASSETS / "images" / "logo.png"
+APP_ICON_PATH = ASSETS / "images" / "nolde.ico"  # window, taskbar and tray icon
 
 BODY_FONT = "Inter"
 DISPLAY_FONT = "Space Grotesk"
